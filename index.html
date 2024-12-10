@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>방향키 쌓기 게임</title>
+    <style>
+        body {
+            font-family: 'Helvetica', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        .game-container {
+            width: 360px;
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 10px 0;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .instructions {
+            margin: 10px 0;
+            font-size: 16px;
+            color: #888;
+        }
+
+        #game-board {
+            width: 100%;
+            height: 300px;
+            background-color: #f2f2f2;
+            border-radius: 15px;
+            position: relative;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            overflow: hidden;
+        }
+
+        .arrow {
+            position: absolute;
+            width: 95px;
+            height: 60px;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: all 0.025s ease-in-out;  /* 애니메이션 속도 10배 빨라짐 */
+            bottom: -60px;
+        }
+
+        .arrow.visible {
+            opacity: 1;
+        }
+
+        .status {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .scoreboard {
+            font-size: 16px;
+            margin-top: 20px;
+            color: #444;
+        }
+
+        .direction-buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-evenly;
+        }
+
+        .direction-button {
+            width: 60px;
+            height: 60px;
+            background-color: #f2f2f7;
+            border: 2px solid #ccc;
+            border-radius: 120px;
+            cursor: pointer;
+            background-size: cover;
+            background-position: center;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        .direction-button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .left-btn {
+            background-image: url('1.webp');
+        }
+
+        .right-btn {
+            background-image: url('2.webp');
+        }
+
+        .center-btn {
+            background-image: url('3.webp');
+        }
+
+        #start-button {
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        #start-button:hover {
+            background-color: #45a049;
+        }
+
+        #timer {
+            font-size: 18px;
+            margin-top: 10px;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>방향키 쌓기 게임</h1>
+        <p class="instructions">맨 위의 방향키를 클릭하거나 터치해 보세요!</p>
+
+        <div id="game-board"></div>
+
+        <p id="status" class="status">게임 시작 전</p>
+        <p id="timer"></p>
+        <button id="start-button">게임 시작</button>
+
+        <div class="scoreboard">
+            <p>현재 점수: <span id="current-score">0</span></p>
+            <p>최고 점수: <span id="high-score">0</span></p>
+        </div>
+
+        <div class="direction-buttons">
+            <div id="left-button" class="direction-button left-btn"></div>
+            <div id="center-button" class="direction-button center-btn"></div>
+            <div id="right-button" class="direction-button right-btn"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentScore = 0;
+        let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
+        let gameSequence = [];
+        let userSequence = [];
+        let gameInterval;
+        let timerInterval;
+        let timeLeft = 30;
+        let gameRunning = false;
+        let isAnimating = false;
+        let gameOver = false;
+
+        const status = document.getElementById('status');
+        const currentScoreElement = document.getElementById('current-score');
+        const highScoreElement = document.getElementById('high-score');
+        const startButton = document.getElementById('start-button');
+        const timerElement = document.getElementById('timer');
+        const gameBoard = document.getElementById('game-board');
+        const leftButton = document.getElementById('left-button');
+        const rightButton = document.getElementById('right-button');
+        const centerButton = document.getElementById('center-button');
+
+        // 게임 시작
+        function startGame() {
+            currentScore = 0;
+            userSequence = [];
+            gameSequence = [];
+            timeLeft = 30;
+            gameOver = false;
+            timerElement.textContent = `시간: ${timeLeft}초`;
+            status.textContent = '게임 중...';
+            gameRunning = true;
+            generateInitialSequence(); // 10개 랜덤 배열 생성
+            showSequence();
+
+            // 게임 타이머
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = `시간: ${timeLeft}초`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        // 랜덤으로 방향키 생성
+        function generateInitialSequence() {
+            for (let i = 0; i < 10; i++) {
+                const randomDirection = Math.random();
+                if (randomDirection < 0.33) {
+                    gameSequence.push('left');
+                } else if (randomDirection < 0.66) {
+                    gameSequence.push('right');
+                } else {
+                    gameSequence.push('center');
+                }
+            }
+        }
+
+        // 쌓인 방향키들을 게임 화면에 표시
+        function showSequence() {
+            gameBoard.innerHTML = '';  // 화면 초기화
+
+            gameSequence.forEach((direction, index) => {
+                setTimeout(() => {
+                    createArrow(direction, index);
+                }, index * 30); // 0.03초마다 하나씩 쌓기 (애니메이션 속도 10배 빠르게)
+            });
+        }
+
+        // 화면에 방향키 만들기
+        function createArrow(direction, index) {
+            const arrow = document.createElement('div');
+            arrow.classList.add('arrow');
+            arrow.classList.add('visible');  // 처음에 보이게 설정
+
+            if (direction === 'left') {
+                arrow.style.backgroundImage = "url('1.webp')";
+            } else if (direction === 'right') {
+                arrow.style.backgroundImage = "url('2.webp')";
+            } else {
+                arrow.style.backgroundImage = "url('3.webp')";
+            }
+
+            // 새로 생성된 방향키는 바로 맨 위로 가도록 설정
+            arrow.style.bottom = `-60px`;  // 화면 밖에 배치
+
+            gameBoard.appendChild(arrow);
+
+            // 애니메이션을 통해 아래에서 위로 올라오는 효과
+            setTimeout(() => {
+                arrow.style.transition = 'all 0.025s ease-in-out';  // 빠른 애니메이션
+                arrow.style.bottom = `${index * 50}px`;  // 각 방향키의 위치 설정 (50px로 겹치게)
+            }, 100); // 애니메이션 시작을 위한 잠시 대기
+        }
+
+        // 사용자 클릭 처리
+        function userClick(direction) {
+            if (!gameRunning || isAnimating || gameOver) return;  // 애니메이션 중이면 클릭을 무시
+
+            // 클릭한 방향과 현재 방향이 일치하면
+            if (gameSequence[userSequence.length] === direction) {
+                userSequence.push(direction);
+
+                // 애니메이션 시작
+                isAnimating = true;
+
+                // 맞춘 방향키 제거
+                const topArrow = document.querySelector('.arrow');
+                if (topArrow) {
+                    removeArrow(topArrow, direction); // 맞춘 방향키 날아가며 사라짐
+                }
+
+                // 새로운 방향키 추가
+                const randomDirection = generateRandomDirection();
+                gameSequence.push(randomDirection);  // 새로운 방향키 추가
+                createArrow(randomDirection, gameSequence.length - 1);  // 맨 아래에 새 방향키 생성
+
+                if (userSequence.length === gameSequence.length) {
+                    currentScore += 100; // 매번 100점 추가
+                    currentScoreElement.textContent = currentScore; // 점수 갱신
+                    userSequence = [];
+                }
+            } else {
+                endGame();
+            }
+        }
+
+        // 랜덤 방향키 생성
+        function generateRandomDirection() {
+            const randomDirection = Math.random();
+            if (randomDirection < 0.33) {
+                return 'left';
+            } else if (randomDirection < 0.66) {
+                return 'right';
+            } else {
+                return 'center';
+            }
+        }
+
+        // 맞춘 방향키 사라짐 처리
+        function removeArrow(arrow, direction) {
+            arrow.style.transition = 'all 0.025s ease-in-out';  // 더 빠른 애니메이션
+            arrow.style.opacity = '0';
+            arrow.style.transform = direction === 'left' ? 'translateX(-100px)' :
+                                   direction === 'right' ? 'translateX(100px)' :
+                                   'translateY(-100px)';  // 방향키가 좌우로 날아감
+
+            setTimeout(() => {
+                arrow.remove(); // 애니메이션 끝난 후 해당 방향키 삭제
+                shiftArrowsUp();  // 나머지 방향키들 위로 올리기
+                isAnimating = false; // 애니메이션 종료 후 클릭 가능
+            }, 25); // 애니메이션 후 삭제
+        }
+
+        // 방향키가 맞춰지고 나면 나머지 방향키들이 위로 올라가게 하는 함수
+        function shiftArrowsUp() {
+            const arrows = document.querySelectorAll('.arrow');
+            arrows.forEach((arrow, index) => {
+                arrow.style.transition = 'all 0.025s ease-in-out';
+                arrow.style.bottom = `${(index) * 50}px`;  // 모든 방향키를 한 칸씩 위로 이동
+            });
+        }
+
+        // 게임 종료
+        function endGame() {
+            gameOver = true;
+            status.textContent = '게임 오버';
+            if (currentScore > highScore) {
+                highScore = currentScore;
+                localStorage.setItem('highScore', highScore);
+            }
+            highScoreElement.textContent = highScore;
+            gameRunning = false;
+            clearInterval(timerInterval);
+        }
+
+        // 게임 시작 버튼 클릭
+        startButton.addEventListener('click', () => {
+            if (!gameRunning) {
+                startGame();
+            }
+        });
+
+        // 방향키 버튼 클릭 이벤트
+        leftButton.addEventListener('click', () => {
+            userClick('left');
+        });
+
+        rightButton.addEventListener('click', () => {
+            userClick('right');
+        });
+
+        centerButton.addEventListener('click', () => {
+            userClick('center');
+        });
+
+        // 키보드 방향키 이벤트 처리
+        window.addEventListener('keydown', (event) => {
+            if (!gameRunning) return;
+
+            if (event.key === "ArrowLeft") {
+                userClick('left');
+            } else if (event.key === "ArrowRight") {
+                userClick('right');
+            } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                userClick('center'); // 3.webp에 대한 처리
+            }
+        });
+    </script>
+</body>
+</html>
