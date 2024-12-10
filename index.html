@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>방향키 쌓기 게임</title>
+    <title>메이플 베어 게임</title>
     <style>
+        /* 기존 스타일 그대로 */
         body {
             font-family: 'Helvetica', sans-serif;
             margin: 0;
@@ -61,7 +62,7 @@
             background-size: cover;
             background-position: center;
             opacity: 0;
-            transition: all 0.025s ease-in-out;  /* 애니메이션 속도 10배 빨라짐 */
+            transition: all 0.025s ease-in-out;
             bottom: -60px;
         }
 
@@ -139,8 +140,8 @@
 <body>
 
     <div class="game-container">
-        <h1>방향키 쌓기 게임</h1>
-        <p class="instructions">맨 위의 방향키를 클릭하거나 터치해 보세요!</p>
+        <h1>메이플 베어 게임</h1>
+        <p class="instructions">정확한 곰을 눌러 주세요!</p>
 
         <div id="game-board"></div>
 
@@ -280,8 +281,6 @@
                 createArrow(randomDirection, gameSequence.length - 1);  // 맨 아래에 새 방향키 생성
 
                 if (userSequence.length === gameSequence.length) {
-                    currentScore += 100; // 매번 100점 추가
-                    currentScoreElement.textContent = currentScore; // 점수 갱신
                     userSequence = [];
                 }
             } else {
@@ -313,6 +312,10 @@
                 arrow.remove(); // 애니메이션 끝난 후 해당 방향키 삭제
                 shiftArrowsUp();  // 나머지 방향키들 위로 올리기
                 isAnimating = false; // 애니메이션 종료 후 클릭 가능
+
+                // 점수 올리기
+                currentScore += 100; // 매번 100점 추가
+                currentScoreElement.textContent = currentScore; // 점수 갱신
             }, 25); // 애니메이션 후 삭제
         }
 
